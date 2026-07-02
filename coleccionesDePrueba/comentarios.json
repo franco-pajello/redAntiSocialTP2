@@ -1,0 +1,18 @@
+[
+    {
+        "_id": "60d5ec49f30d1313348612d1",
+        "descripcion": "Buenísimo el aporte Juan! Me sirvió una banda.",
+        "usuario": "60d5ec49f30d1313348612a2",
+        "publicacion": "60d5ec49f30d1313348612b1",
+        "createdAt": "2026-06-11T09:15:00.000Z",
+        "updatedAt": "2026-06-11T09:15:00.000Z"
+    },
+    {
+        "_id": "60d5ec49f30d1313348612d2",
+        "descripcion": "Este es un comentario viejo para probar el filtro de meses.",
+        "usuario": "60d5ec49f30d1313348612a1",
+        "publicacion": "60d5ec49f30d1313348612b1",
+        "createdAt": "2025-12-01T12:00:00.000Z",
+        "updatedAt": "2025-12-01T12:00:00.000Z"
+    }
+]

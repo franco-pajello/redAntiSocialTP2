@@ -4,20 +4,15 @@ const Xmeses = process.env.Xmeses || 3;
 
 const getAllComent = async (req, res) => {
   try {
-    const { id } = req.params;
-
+    const publicacion = req.publicacion;
     const fechaLimite = new Date();
 
-    fechaLimite.setMonth(fechaLimite.getMonth() - Number(Xmeses));
-
-    const publicacion = await Publicacion.findById(id).populate({
+    await publicacion.populate({
       path: "comentarios",
       populate: { path: "usuario" },
     });
 
-    if (!publicacion) {
-      return res.status(404).json({ message: "Publicación no encontrada" });
-    }
+    fechaLimite.setMonth(fechaLimite.getMonth() - Number(Xmeses));
 
     const comentariosFiltrados = publicacion.comentarios
       .filter(
@@ -54,20 +49,14 @@ const getAllComent = async (req, res) => {
  */
 const createComent = async (req, res) => {
   try {
-    const { idUser, idPublicacion } = req.params;
     const { descripcion } = req.body;
-    const publicacion = await Publicacion.findById(idPublicacion);
-    const miUsuario = await Usuario.findById(idUser);
-
-    if (!miUsuario)
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    if (!publicacion)
-      return res.status(404).json({ message: "Publicación no encontrada" });
+    const publicacion = req.publicacion;
+    const miUsuario = req.usuario;
 
     const nuevoComentario = await Comentario.create({
       descripcion,
-      usuario: idUser,
-      publicacion: idPublicacion,
+      usuario: miUsuario._id,
+      publicacion: publicacion._id,
     });
     publicacion.comentarios.addToSet(nuevoComentario._id);
     miUsuario.comentarios.addToSet(nuevoComentario._id);
@@ -89,21 +78,7 @@ const createComent = async (req, res) => {
 
 const upDateComent = async (req, res) => {
   try {
-    const { idUser, idComment } = req.params;
-
-    const comentarioExistente = await Comentario.findById(idComment);
-    if (!comentarioExistente) {
-      return res.status(404).json({ message: "Comentario no encontrado" });
-    }
-
-    if (
-      comentarioExistente.usuario &&
-      comentarioExistente.usuario.toString() !== idUser
-    ) {
-      return res
-        .status(403)
-        .json({ message: "No tenés permisos para editar este comentario" });
-    }
+    const comentarioExistente = req.comentario;
 
     comentarioExistente.descripcion = req.body.descripcion;
 
@@ -123,40 +98,31 @@ const upDateComent = async (req, res) => {
 
 const deleteComent = async (req, res) => {
   try {
-    const { idComment, idUser } = req.params;
+    const comentarioExistente = req.comentario;
 
-    const comentarioExistente = await Comentario.findById(idComment)
-      .populate("usuario")
-      .populate("publicacion");
+    const usuario = await Usuario.findById(
+      comentarioExistente.usuario,
+    ).populate("comentarios");
 
-    if (!comentarioExistente) {
-      return res.status(404).json("El comentario no fue encontrado");
-    }
-
-    const userValido = comentarioExistente.usuario._id.toString() === idUser;
-
-    if (!userValido) {
-      return res
-        .status(403)
-        .json("No tenés permisos para borrar este comentario");
-    }
-
-    const usuario = comentarioExistente.usuario;
-    const publicacion = comentarioExistente.publicacion;
+    const publicacion = await Publicacion.findById(
+      comentarioExistente.publicacion,
+    ).populate("comentarios");
 
     await comentarioExistente.deleteOne();
 
     publicacion.comentarios = publicacion.comentarios.filter(
-      (c) => c.toString() !== idComment,
+      (c) => c._id.toString() !== comentarioExistente._id.toString(),
     );
 
     usuario.comentarios = usuario.comentarios.filter(
-      (c) => c.toString() !== idComment,
+      (c) => c._id.toString() !== comentarioExistente._id.toString(),
     );
     await publicacion.save();
     await usuario.save();
 
-    res.status(200).json("El comentario fue borrado con éxito");
+    res.status(200).json({
+      message: "El comentario fue borrado con éxito",
+    });
   } catch (error) {
     res
       .status(500)

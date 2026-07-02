@@ -27,17 +27,8 @@ const getAllPosts = async (_, res) => {
 
 const getOnePost = async (req, res) => {
   try {
-    const { id } = req.params;
-    const data = await Publicacion.findById(id)
-      .populate("usuario", "nickName")
-      .populate("tags", "tag")
-      .populate("comentarios");
-
-    if (!data) {
-      return res.status(404).json({ message: "Publicación no encontrada" });
-    }
-
-    res.status(200).json(data);
+    const publicacion = req.publicacion;
+    res.status(200).json(publicacion);
   } catch (error) {
     res.status(500).json({
       message: "Error al buscar la publicación",
@@ -51,10 +42,7 @@ const createPost = async (req, res) => {
     const { descripcion, imagenes, tags } = req.body;
     const { idUser } = req.params;
 
-    const usuarioExistente = await Usuario.findById(idUser);
-    if (!usuarioExistente) {
-      return res.status(404).json({ message: "El usuario creador no existe" });
-    }
+    const usuarioExistente = req.usuario;
 
     const nuevaPublicacion = await Publicacion.create({
       descripcion,
@@ -62,13 +50,10 @@ const createPost = async (req, res) => {
       imagenes: imagenes || [],
       tags: tags || [],
     });
-
-    if (tags && tags.length > 0) {
-      await Tag.updateMany(
-        { _id: { $in: tags } },
-        { $addToSet: { publicaciones: nuevaPublicacion._id } },
-      );
-    }
+    await Tag.updateMany(
+      { _id: { $in: tags } },
+      { $addToSet: { publicaciones: nuevaPublicacion._id } },
+    );
 
     usuarioExistente.publicaciones.addToSet(nuevaPublicacion._id);
     await usuarioExistente.save();
@@ -86,23 +71,13 @@ const createPost = async (req, res) => {
 
 const upDatePost = async (req, res) => {
   try {
-    const { id, idUser } = req.params;
     const { descripcion, imagenes, tags } = req.body;
 
-    const postExistente = await Publicacion.findById(id);
-    if (!postExistente) {
-      return res.status(404).json({ message: "Publicación no encontrada" });
-    }
-
-    if (postExistente.usuario.toString() !== idUser) {
-      return res
-        .status(403)
-        .json({ message: "No tenés permisos para editar esta publicación" });
-    }
+    const postExistente = req.publicacion;
 
     await Tag.updateMany(
-      { publicaciones: id },
-      { $pull: { publicaciones: id } },
+      { publicaciones: postExistente._id },
+      { $pull: { publicaciones: postExistente._id } },
     );
 
     postExistente.descripcion = descripcion;
@@ -113,7 +88,7 @@ const upDatePost = async (req, res) => {
     if (tags && tags.length > 0) {
       await Tag.updateMany(
         { _id: { $in: tags } },
-        { $addToSet: { publicaciones: id } },
+        { $addToSet: { publicaciones: postExistente._id } },
       );
     }
 
@@ -128,30 +103,18 @@ const upDatePost = async (req, res) => {
 
 const deletePost = async (req, res) => {
   try {
-    const { id, idUser } = req.params;
-
-    const publicacion = await Publicacion.findById(id);
-    if (!publicacion) {
-      return res.status(404).json({ message: "Publicación no encontrada" });
-    }
-
-    if (publicacion.usuario.toString() !== idUser) {
-      return res
-        .status(403)
-        .json({ message: "No tenés permisos para borrar esta publicación" });
-    }
-
+    const usuario = req.usuario;
+    const postExistente = req.publicacion;
     await Tag.updateMany(
-      { publicaciones: id },
-      { $pull: { publicaciones: id } },
+      { publicaciones: postExistente._id },
+      { $pull: { publicaciones: postExistente._id } },
     );
 
-    await publicacion.deleteOne();
+    await postExistente.deleteOne();
 
-    const usuario = await Usuario.findById(idUser);
     if (usuario) {
       usuario.publicaciones = usuario.publicaciones.filter(
-        (p) => p.toString() !== id,
+        (p) => p.toString() !== postExistente._id.toString(),
       );
       await usuario.save();
     }

@@ -1,0 +1,43 @@
+[
+  {
+    "_id": "60d5ec49f30d1313348612a1",
+    "nickName": "juamperez",
+    "email": "juan@example.com",
+    "password": "123",
+    "activo": true,
+    "comentarios": [
+      "60d5ec49f30d1313348612d1"
+    ],
+    "publicaciones": [
+      "60d5ec49f30d1313348612b1"
+    ],
+    "createdAt": "2026-06-01T10:00:00.000Z",
+    "updatedAt": "2026-06-01T10:00:00.000Z"
+  },
+  {
+    "_id": "60d5ec49f30d1313348612a2",
+    "nickName": "marialopez",
+    "email": "maria@example.com",
+    "password": "456",
+    "activo": true,
+    "comentarios": [
+      "60d5ec49f30d1313348612d2"
+    ],
+    "publicaciones": [
+      "60d5ec49f30d1313348612b2"
+    ],
+    "createdAt": "2026-06-02T11:30:00.000Z",
+    "updatedAt": "2026-06-02T11:30:00.000Z"
+  },
+  {
+    "_id": "60d5ec49f30d1313348612a3",
+    "nickName": "lud-vasquez",
+    "email": "lud-vasquez@example.com",
+    "password": "789",
+    "activo": false,
+    "comentarios": [],
+    "publicaciones": [],
+    "createdAt": "2025-01-01T09:00:00.000Z",
+    "updatedAt": "2026-06-15T18:20:00.000Z"
+  }
+]

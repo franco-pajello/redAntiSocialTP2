@@ -1,0 +1,17 @@
+[
+    {
+        "_id": "60d5ec49f30d1313348612c1",
+        "tag": "NodeJS",
+        "publicaciones": [
+            "60d5ec49f30d1313348612b1",
+            "60d5ec49f30d1313348612b2"
+        ]
+    },
+    {
+        "_id": "60d5ec49f30d1313348612c2",
+        "tag": "Programacion",
+        "publicaciones": [
+            "60d5ec49f30d1313348612b1"
+        ]
+    }
+]

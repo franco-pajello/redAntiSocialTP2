@@ -1,78 +1,664 @@
 openapi: 3.0.0
 info:
-  title: API RedAntiSocial 🕶️
+  title: API de Publicaciones, Comentarios y Tags
   version: 1.0.0
-  description: Documentación oficial de las rutas de la RedAntiSocial.
-
-# Definimos el servidor local donde corre la API
+  description: Documentación de la API desarrollada en Node.js, Express y MongoDB.
 servers:
   - url: http://localhost:3000
-    description: Servidor de Desarrollo
+    description: Servidor de Desarrollo Local
+
+tags:
+  - name: Usuario
+    description: Operaciones relacionadas con la gestión de usuarios
+  - name: Publicacion
+    description: Operaciones relacionadas con posts o publicaciones
+  - name: Comentario
+    description: Operaciones para gestionar comentarios dentro de publicaciones
+  - name: Tag
+    description: Operaciones para administrar etiquetas (tags)
 
 paths:
-  # ------ RUTA: /usuarios ------
-  /usuarios:
-    # 1. Método GET (Obtener usuarios)
+  # --- ENDPOINTS DE USUARIO ---
+  /usuario:
     get:
-      summary: Obtiene la lista de todos los usuarios
-      description: Devuelve un arreglo con todos los usuarios registrados en la red antisocial.
+      tags:
+        - Usuario
+      summary: Obtener todos los usuarios activos
       responses:
         "200":
-          description: Lista de usuarios obtenida con éxito.
+          description: Listado de usuarios activos recuperado exitosamente.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Usuario" # Hacemos referencia al molde de abajo
-
-    # 2. Método POST (Crear un usuario)
+                  $ref: "#/components/schemas/UsuarioResponse"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
     post:
+      tags:
+        - Usuario
       summary: Registrar un nuevo usuario
-      description: Recibe los datos del usuario en el cuerpo de la petición (body) y lo registra.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NuevoUsuario"
+              $ref: "#/components/schemas/UsuarioInput"
       responses:
         "201":
-          description: Usuario creado exitosamente.
+          description: Usuario registrado exitosamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Usuario registrado exitosamente.
+                  data:
+                    $ref: "#/components/schemas/UsuarioResponse"
         "400":
-          description: Error en los datos enviados (Falta email o contraseña).
+          description: Error de validación o cuenta/email/nickname ya existente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
 
-# ------ COMPONENTES REUTILIZABLES (Moldes de datos) ------
+  /usuario/{idUser}:
+    get:
+      tags:
+        - Usuario
+      summary: Obtener la información de un usuario específico
+      parameters:
+        - $ref: "#/components/parameters/idUser"
+      responses:
+        "200":
+          description: Información del usuario devuelta correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioResponse"
+        "404":
+          description: El usuario solicitado no existe, está inactivo o dado de baja.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+    put:
+      tags:
+        - Usuario
+      summary: Actualizar la información de un usuario
+      parameters:
+        - $ref: "#/components/parameters/idUser"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsuarioInput"
+      responses:
+        "200":
+          description: Usuario actualizado exitosamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Usuario actualizado exitosamente.
+                  data:
+                    $ref: "#/components/schemas/UsuarioResponse"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "404":
+          description: El usuario solicitado no existe o está inactivo.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+    delete:
+      tags:
+        - Usuario
+      summary: Dar de baja un usuario (Borrado lógico)
+      parameters:
+        - $ref: "#/components/parameters/idUser"
+      responses:
+        "200":
+          description: Usuario dado de baja exitosamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Usuario dado de baja exitosamente.
+        "404":
+          description: El usuario solicitado no existe o ya está inactivo.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  # --- ENDPOINTS DE PUBLICACION ---
+  /publicacion:
+    get:
+      tags:
+        - Publicacion
+      summary: Obtener todas las publicaciones recientes
+      description: Recupera las publicaciones ordenadas de forma descendente, limitando los comentarios adjuntos según la configuración de meses establecida en el entorno.
+      responses:
+        "200":
+          description: Listado de publicaciones obtenido exitosamente.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicacionResponse"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  /publicacion/{idPublicacion}:
+    get:
+      tags:
+        - Publicacion
+      summary: Obtener una publicación específica por ID
+      parameters:
+        - $ref: "#/components/parameters/idPublicacion"
+      responses:
+        "200":
+          description: Publicación devuelta correctamente con sus datos populados.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicacionResponse"
+        "404":
+          description: La publicación solicitada no existe.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  /publicacion/usuario/{idUser}:
+    post:
+      tags:
+        - Publicacion
+      summary: Crear una nueva publicación
+      parameters:
+        - $ref: "#/components/parameters/idUser"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicacionInput"
+      responses:
+        "201":
+          description: Publicación creada con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Publicación creada con éxito
+                  data:
+                    $ref: "#/components/schemas/PublicacionResponse"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  /publicacion/{idPublicacion}/usuario/{idUser}:
+    put:
+      tags:
+        - Publicacion
+      summary: Actualizar una publicación existente
+      parameters:
+        - $ref: "#/components/parameters/idPublicacion"
+        - $ref: "#/components/parameters/idUser"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicacionInput"
+      responses:
+        "200":
+          description: Publicación actualizada con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Publicación actualizada con éxito
+                  data:
+                    $ref: "#/components/schemas/PublicacionResponse"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "403":
+          description: No tenés permisos para editar esta publicación.
+        "404":
+          description: El usuario o la publicación no existen.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  /publicacion/{id}/usuario/{idUser}:
+    delete:
+      tags:
+        - Publicacion
+      summary: Eliminar una publicación
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la publicación a eliminar
+          schema:
+            type: string
+        - $ref: "#/components/parameters/idUser"
+      responses:
+        "200":
+          description: Publicación eliminada con éxito.
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Publicación eliminada con éxito
+        "403":
+          description: No tenés permisos para editar/eliminar esta publicación.
+        "404":
+          description: El usuario o la publicación no existen.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  # --- ENDPOINTS DE COMENTARIO ---
+  /publicacion/{idPublicacion}/comentario:
+    get:
+      tags:
+        - Comentario
+      summary: Obtener comentarios activos y recientes de una publicación
+      parameters:
+        - $ref: "#/components/parameters/idPublicacion"
+      responses:
+        "200":
+          description: Listado de comentarios filtrados devuelto exitosamente.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComentarioResponse"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  /publicacion/{idPublicacion}/usuario/{idUser}/comentario:
+    post:
+      tags:
+        - Comentario
+      summary: Crear un comentario en una publicación
+      parameters:
+        - $ref: "#/components/parameters/idPublicacion"
+        - $ref: "#/components/parameters/idUser"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - descripcion
+              properties:
+                descripcion:
+                  type: string
+                  example: Este es un gran comentario.
+      responses:
+        "201":
+          description: Comentario agregado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comentario agregado con éxito
+                  data:
+                    $ref: "#/components/schemas/ComentarioResponse"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  /publicacion/comentario/{idComment}/usuario/{idUser}:
+    put:
+      tags:
+        - Comentario
+      summary: Editar un comentario existente
+      parameters:
+        - $ref: "#/components/parameters/idComment"
+        - $ref: "#/components/parameters/idUser"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - descripcion
+              properties:
+                descripcion:
+                  type: string
+                  example: Descripción del comentario editada.
+      responses:
+        "200":
+          description: Comentario actualizado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Comentario actualizado con éxito
+                  data:
+                    $ref: "#/components/schemas/ComentarioResponse"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "403":
+          description: No tenés permisos para editar este comentario.
+        "404":
+          description: El comentario o usuario solicitado no existe.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+    delete:
+      tags:
+        - Comentario
+      summary: Eliminar un comentario
+      parameters:
+        - $ref: "#/components/parameters/idComment"
+        - $ref: "#/components/parameters/idUser"
+      responses:
+        "200":
+          description: El comentario fue borrado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: El comentario fue borrado con éxito
+        "403":
+          description: No tenés permisos para editar/eliminar este comentario.
+        "404":
+          description: El comentario solicitado no existe.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  # --- ENDPOINTS DE TAG ---
+  /tag:
+    get:
+      tags:
+        - Tag
+      summary: Obtener todos los tags
+      responses:
+        "200":
+          description: Lista de etiquetas devuelta exitosamente.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TagResponse"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+    post:
+      tags:
+        - Tag
+      summary: Crear un nuevo tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagInput"
+      responses:
+        "200":
+          description: Tag creado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tag creado con exito
+                  tag:
+                    $ref: "#/components/schemas/TagResponse"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
+  /tag/{idTag}:
+    get:
+      tags:
+        - Tag
+      summary: Obtener un tag por su ID
+      parameters:
+        - $ref: "#/components/parameters/idTag"
+      responses:
+        "200":
+          description: Tag recuperado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagResponse"
+        "404":
+          description: El tag solicitado no existe.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+    put:
+      tags:
+        - Tag
+      summary: Actualizar un tag por su ID
+      parameters:
+        - $ref: "#/components/parameters/idTag"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagInput"
+      responses:
+        "200":
+          description: Tag editado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tag editado con exito
+                  tag:
+                    $ref: "#/components/schemas/TagResponse"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "404":
+          description: El tag solicitado no existe.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+    delete:
+      tags:
+        - Tag
+      summary: Eliminar un tag permanentemente
+      parameters:
+        - $ref: "#/components/parameters/idTag"
+      responses:
+        "200":
+          description: Tag eliminado con éxito.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tag eliminado con éxito
+        "404":
+          description: El tag solicitado no existe.
+        "500":
+          $ref: "#/components/responses/ErrorInterno"
+
 components:
+  parameters:
+    idUser:
+      name: idUser
+      in: path
+      required: true
+      description: ID único de MongoDB del usuario
+      schema:
+        type: string
+    idPublicacion:
+      name: idPublicacion
+      in: path
+      required: true
+      description: ID único de MongoDB de la publicación
+      schema:
+        type: string
+    idComment:
+      name: idComment
+      in: path
+      required: true
+      description: ID único de MongoDB del comentario
+      schema:
+        type: string
+    idTag:
+      name: idTag
+      in: path
+      required: true
+      description: ID único de MongoDB del tag
+      schema:
+        type: string
+
+  responses:
+    ErrorInterno:
+      description: Error interno del servidor.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              error:
+                type: string
+    ErrorValidacion:
+      description: Los datos de entrada no cumplen con las reglas de validación (Joi).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   schemas:
-    # Lo que se necesita para CREAR un usuario
-    NuevoUsuario:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Error de validación en los datos de entrada.
+        error:
+          type: string
+          example: El campo requerido está vacío.
+
+    Imagen:
       type: object
       required:
-        - username
+        - path
+      properties:
+        path:
+          type: string
+          example: /uploads/imagenes/foto1.png
+
+    UsuarioInput:
+      type: object
+      required:
+        - nickName
         - email
         - password
       properties:
-        username:
+        nickName:
           type: string
-          example: "juan_antisocial"
+          example: juan_perez
         email:
           type: string
-          example: "juan@correo.com"
+          format: email
+          example: juan@example.com
         password:
           type: string
-          example: "secreto123"
+          example: password123
+        activo:
+          type: boolean
+          default: true
 
-    # Lo que DEVUELVE el servidor (incluye el ID generado)
-    Usuario:
+    UsuarioResponse:
       type: object
       properties:
-        id:
-          type: integer
-          example: 1
-        username:
+        _id:
           type: string
-          example: "juan_antisocial"
+          example: 60c72b2f9b1d8b23c4d5e6f1
+        nickName:
+          type: string
+          example: juan_perez
         email:
           type: string
-          example: "juan@correo.com"
+          example: juan@example.com
+        activo:
+          type: boolean
+          example: true
+        comentarios:
+          type: array
+          items:
+            type: string
+          example: ["60c72b2f9b1d8b23c4d5e6a2"]
+        publicaciones:
+          type: array
+          items:
+            type: string
+          example: ["60c72b2f9b1d8b23c4d5e6b5"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PublicacionInput:
+      type: object
+      required:
+        - descripcion
+      properties:
+        descripcion:
+          type: string
+          example: ¡Hola mundo! Mi primera publicación en la plataforma.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Listado de IDs de Tags vinculados.
+          example: ["60c72b2f9b1d8b23c4d5e6c9"]
+        imagenes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Imagen"
+
+    PublicacionResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 60c72b2f9b1d8b23c4d5e6b5
+        descripcion:
+          type: string
+          example: ¡Hola mundo! Mi primera publicación en la plataforma.

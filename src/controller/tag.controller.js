@@ -13,9 +13,7 @@ const getAllTag = async (req, res) => {
 };
 const getOneTag = async (req, res) => {
   try {
-    const { idTag } = req.params;
-
-    const tag = await Tag.findById(idTag);
+    const tag = req.tag;
 
     res.status(200).json(tag);
   } catch (error) {
@@ -39,19 +37,13 @@ const createTag = async (req, res) => {
 };
 const upDateTag = async (req, res) => {
   try {
-    const { idTag } = req.params;
     const { tag } = req.body;
-    /////////////////////////
-    const tagExistente = await Tag.findById(idTag);
 
-    if (!tagExistente) {
-      return res.status(404).json({ ok: false, error: "Tag no encontrado" });
-    }
-    ////////////////////////////////
+    const tagExistente = req.tag;
 
     tagExistente.tag = tag;
 
-    await tagExistente.save();
+    const tagEditado = await tagExistente.save();
 
     res.status(200).json({ message: "Tag editado con exito", tag: tagEditado });
   } catch (error) {
@@ -62,18 +54,11 @@ const upDateTag = async (req, res) => {
 };
 const deleteTag = async (req, res) => {
   try {
-    const { idTag } = req.params;
-    /////////////////////////
-    const tagExistente = await Tag.findById(idTag);
-
-    if (!tagExistente) {
-      return res.status(404).json({ ok: false, error: "Tag no encontrado" });
-    }
-    ////////////////////////////////
+    const tagExistente = req.tag;
 
     await tagExistente.deleteOne();
 
-    res.status(200).json({ message: "Tag editado con exito" });
+    res.status(200).json({ message: "Tag eliminado con éxito" });
   } catch (error) {
     res
       .status(500)
